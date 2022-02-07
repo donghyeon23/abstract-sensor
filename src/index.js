@@ -1,20 +1,23 @@
+
 class Sensor {
+    static eventOut(data) {
+        console.log('IotServer에서 받은 Action Id :', data)
+    }
     constructor(name) {
         this.name = name;
         this.powerStatus = 'off'
         this.status = null;
         this.reportingInterval = 10000;
         this.runningTimerId = [];
-        this.event = [];
     }
 
-    get receiveEvent() {
-        return this.event;
+    get reportingInterval() {
+        return this._reportingInterval;
     }
 
-    set receiveEvent(value) {
-        console.log(value)
-        this.event = value
+    set reportingInterval(value) {
+        if (value < 0 || value > 10000) throw new Error();
+        this._reportingInterval = value
     }
 
     turn(status) {
@@ -43,14 +46,19 @@ class Sensor {
 
     reportingSensor(status) {
         this.status = status;
+        IotServer.stdout(status);
         this.runningTimerId = setTimeout(() => { this.idleSensor('idle') }, 1000);
     }
 }
 
 
 class IotServer {
+    static stdout(data) {
+        console.log('Sensor로 부터 받은 Data : ', data)
+    }
     constructor() {
         this.sensorList = [];
+        // this.stdin();
     }
     start(sensor) {
         this.sensorList.push(...sensor);
@@ -61,26 +69,62 @@ class IotServer {
             let idx = this.sensorList.findIndex(obj => obj.name === deviceId)
             if (this.sensorList[idx].powerStatus !== 'off') {
                 this.sensorList[idx].reportingInterval = payload;
-                this.sensorList[idx].receiveEvent = actionId;
             }
         }
 
     }
 
-    stdin(payload) {
-        let data = {
-            deviceId: 'id1',
-            actionId: 'CHANGE_REPORTING_INTERVAL',
-            payload: payload,
-        }
+    stdin() {
+        // const readlineSync = require('readline-sync');
+        // let id = readlineSync.questionInt('id:');
+        // let payload = readlineSync.questionInt('payload:');
+        const readline = require('readline');
 
-        this.publish(data)
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
+
+        rl.question('id와 payload를 공백으로 구분하여 입력해주세요. \n bye를 입력하시면 입력이 중지 됩니다.', (input) => {
+            if (input === 'bye') {
+                rl.close();
+            } else {
+                let [id, payload] = input.split(' ')
+
+                if (!isNaN(id) && !isNaN(payload)) {
+                    let data = {
+                        deviceId: `id${id}`,
+                        actionId: 'CHANGE_REPORTING_INTERVAL',
+                        payload: payload,
+                    }
+                    this.publish(data);
+                    Sensor.eventOut(data['actionId']);
+                    rl.close();
+                    this.stdin()
+                } else {
+                    console.log('숫자만 입력해주세요')
+                    rl.close();
+                    this.stdin()
+                }
+
+            }
+        })
+
+
     }
-}
+};
+
+
+const sensor = new Sensor('id1');
+sensor.turn('on')
+const server = new IotServer();
+server.start([sensor]);
+server.stdin()
 
 
 
-
+// new IotServer()
+// IotServer.stdin(2000)
 
 
 module.exports = {
