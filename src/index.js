@@ -4,8 +4,17 @@ class Sensor {
         this.powerStatus = 'off'
         this.status = null;
         this.reportingInterval = 10000;
-
         this.runningTimerId = [];
+        this.event = [];
+    }
+
+    get receiveEvent() {
+        return this.event;
+    }
+
+    set receiveEvent(value) {
+        console.log(value)
+        this.event = value
     }
 
     turn(status) {
@@ -52,11 +61,27 @@ class IotServer {
             let idx = this.sensorList.findIndex(obj => obj.name === deviceId)
             if (this.sensorList[idx].powerStatus !== 'off') {
                 this.sensorList[idx].reportingInterval = payload;
+                this.sensorList[idx].receiveEvent = actionId;
             }
         }
 
     }
+
+    stdin(payload) {
+        let data = {
+            deviceId: 'id1',
+            actionId: 'CHANGE_REPORTING_INTERVAL',
+            payload: payload,
+        }
+
+        this.publish(data)
+    }
 }
+
+
+
+
+
 
 module.exports = {
     Sensor,
