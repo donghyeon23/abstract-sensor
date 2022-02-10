@@ -1,7 +1,7 @@
 
 class Sensor {
     static eventOut(data) {
-        console.log('IotServer에서 받은 Action Id :', data)
+        console.log('[Sensor] IotServer[Action Id] :', data[0], ', payload :', data[1])
     }
     constructor(name) {
         this.name = name;
@@ -46,7 +46,7 @@ class Sensor {
 
     reportingSensor(status) {
         this.status = status;
-        IotServer.stdout(status);
+        IotServer.stdout([status, this.name]);
         this.runningTimerId = setTimeout(() => { this.idleSensor('idle') }, 1000);
     }
 }
@@ -54,7 +54,7 @@ class Sensor {
 
 class IotServer {
     static stdout(data) {
-        console.log('Sensor로 부터 받은 Data : ', data)
+        console.log('[Server] Sensor', data[1], '로부터 받은 data :', data[0])
     }
     constructor() {
         this.sensorList = [];
@@ -62,6 +62,7 @@ class IotServer {
     }
     start(sensor) {
         this.sensorList.push(...sensor);
+        this.stdin();
     }
 
     publish({ deviceId, actionId, payload }) {
@@ -71,7 +72,6 @@ class IotServer {
                 this.sensorList[idx].reportingInterval = payload;
             }
         }
-
     }
 
     stdin() {
@@ -98,7 +98,7 @@ class IotServer {
                         payload: payload,
                     }
                     this.publish(data);
-                    Sensor.eventOut(data['actionId']);
+                    Sensor.eventOut([data['actionId'], payload]);
                     rl.close();
                     this.stdin()
                 } else {
@@ -119,7 +119,7 @@ const sensor = new Sensor('id1');
 sensor.turn('on')
 const server = new IotServer();
 server.start([sensor]);
-server.stdin()
+// server.stdin()
 
 
 
